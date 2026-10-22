@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Xakpc.McpCanary.Cli/Xakpc.McpCanary.Cli.csproj" />
+    <Project Path="src/Xakpc.McpCanary.Contracts/Xakpc.McpCanary.Contracts.csproj" />
+  </Folder>
+</Solution>
