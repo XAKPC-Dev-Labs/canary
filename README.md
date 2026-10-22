@@ -1,10 +1,14 @@
 <a id="readme-top"></a>
 
+<div align="center">
+
 [![Release][release-shield]][release-url]
 [![CI][ci-shield]][ci-url]
 [![Downloads][downloads-shield]][release-url]
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
+
+</div>
 
 <br />
 <div align="center">
