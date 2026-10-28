@@ -71,10 +71,17 @@ public sealed record CredentialsFile(Dictionary<string, string> Tokens);
 /// <summary>Success body of commands whose API answer has none (delete).</summary>
 public sealed record OkResponse(bool Ok);
 
+/// <summary>
+/// <c>canary workspace show</c>: <c>GET /v1/workspace</c> plus what only the CLI knows: the API URL, where the token
+/// comes from, and its first characters. Never the whole token.
+/// </summary>
+public sealed record WorkspaceShowResponse(Guid WorkspaceId, DateTime CreatedAt, string ApiUrl, string TokenSource, string TokenHint);
+
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     WriteIndented = true)]
 [JsonSerializable(typeof(CredentialsFile))]
 [JsonSerializable(typeof(OkResponse))]
+[JsonSerializable(typeof(WorkspaceShowResponse))]
 public partial class CliJsonContext : JsonSerializerContext;

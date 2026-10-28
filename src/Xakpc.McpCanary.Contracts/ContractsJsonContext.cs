@@ -11,9 +11,12 @@ namespace Xakpc.McpCanary.Contracts;
     PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 [JsonSerializable(typeof(ErrorResponse))]
+[JsonSerializable(typeof(PublicServerListResponse))]
+[JsonSerializable(typeof(PublicServerResponse))]
 [JsonSerializable(typeof(InspectRequest))]
 [JsonSerializable(typeof(InspectResponse))]
 [JsonSerializable(typeof(CreateWorkspaceResponse))]
+[JsonSerializable(typeof(WorkspaceResponse))]
 [JsonSerializable(typeof(MonitorSpec))]
 [JsonSerializable(typeof(PutMonitorResponse))]
 [JsonSerializable(typeof(MonitorListResponse))]

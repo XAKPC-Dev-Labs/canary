@@ -365,6 +365,22 @@ public static class CliApp
         private Command Workspace()
         {
             var workspace = new Command("workspace", "The workspace itself.");
+            workspace.Subcommands.Add(Cmd("show", "Show the workspace id, the API URL, and where the token comes from. Never prints the token.",
+                [], async (p, o, ct) =>
+                {
+                    var result = await _api.GetAsync("/v1/workspace", ContractsJsonContext.Default.WorkspaceResponse, ct);
+                    var token = _api.Token!;
+                    var show = new WorkspaceShowResponse(result.Value.WorkspaceId, result.Value.CreatedAt, _api.ApiUrl,
+                        _api.TokenSource!, token[..Math.Min(token.Length, 12)] + "...");
+                    o.Result(JsonSerializer.Serialize(show, CliJsonContext.Default.WorkspaceShowResponse), w =>
+                    {
+                        w.WriteLine($"Workspace  {show.WorkspaceId}");
+                        w.WriteLine($"Created    {Output.Time(show.CreatedAt)}");
+                        w.WriteLine($"API        {show.ApiUrl}");
+                        w.WriteLine($"Token      {show.TokenHint} (from {show.TokenSource})");
+                    });
+                    return ExitCodes.Success;
+                }));
             var yes = new Option<bool>("--yes") { Description = "Required: confirms that all data is deleted for good." };
             workspace.Subcommands.Add(Cmd("delete", "Delete the workspace with all monitors, history, webhooks, and emails. Cannot be undone.",
                 [yes], async (p, o, ct) =>

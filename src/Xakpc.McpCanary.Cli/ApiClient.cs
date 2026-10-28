@@ -42,6 +42,10 @@ public sealed class ApiClient(CliHost host)
 
     public string? Token => EnvToken ?? CredentialStore.Read(host.CredentialsPath, ApiUrl);
 
+    /// <summary>Where <see cref="Token"/> comes from: <c>MCP_CANARY_TOKEN</c>, the credentials file path, or null.</summary>
+    public string? TokenSource => EnvToken is not null ? "MCP_CANARY_TOKEN"
+        : CredentialStore.Read(host.CredentialsPath, ApiUrl) is not null ? host.CredentialsPath : null;
+
     /// <summary>
     /// The token, creating an anonymous workspace when there is none (first <c>monitor set</c> or <c>webhook set</c>).
     /// Returns the new workspace id when one was created.

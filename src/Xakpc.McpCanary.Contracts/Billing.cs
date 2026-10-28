@@ -6,9 +6,11 @@ public static class PlanNames
     public const string Trial = "trial";
     public const string Solo = "solo";
     public const string Pro = "pro";
+    /// <summary>Hidden: never sold or offered. A workspace gets it only through a server-side plan grant.</summary>
+    public const string Enterprise = "enterprise";
 
     /// <summary>Lowest first.</summary>
-    public static readonly IReadOnlyList<string> Ordered = [Trial, Solo, Pro];
+    public static readonly IReadOnlyList<string> Ordered = [Trial, Solo, Pro, Enterprise];
 
     /// <summary>Plans that can be bought, lowest first.</summary>
     public static readonly IReadOnlyList<string> Paid = [Solo, Pro];
