@@ -1,10 +1,14 @@
 <a id="readme-top"></a>
 
+<div align="center">
+
 [![Release][release-shield]][release-url]
 [![CI][ci-shield]][ci-url]
 [![Downloads][downloads-shield]][release-url]
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
+
+</div>
 
 <br />
 <div align="center">
@@ -70,8 +74,8 @@ This repository is the CLI's source code, its releases, and its issue tracker. T
 ### Built With
 
 * [![.NET][dotnet-shield]][dotnet-url]
-* [![NativeAOT][aot-shield]][aot-url]
-* [![System.CommandLine][cmdline-shield]][cmdline-url]
+* NativeAOT
+* System.CommandLine
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -187,7 +191,3 @@ Website: [mcpcanary.com](https://mcpcanary.com)
 [product-screenshot]: images/screenshot.png
 [dotnet-shield]: https://img.shields.io/badge/.NET_10-512BD4?style=for-the-badge&logo=dotnet&logoColor=white
 [dotnet-url]: https://dotnet.microsoft.com/
-[aot-shield]: https://img.shields.io/badge/NativeAOT-0B0F14?style=for-the-badge
-[aot-url]: https://learn.microsoft.com/dotnet/core/deploying/native-aot/
-[cmdline-shield]: https://img.shields.io/badge/System.CommandLine-0B0F14?style=for-the-badge
-[cmdline-url]: https://github.com/dotnet/command-line-api
