@@ -22,6 +22,8 @@ public static class ErrorCodes
     /// Details: <c>limit</c>, <c>current_plan</c>, <c>required_plan</c>, <c>allowed</c>, <c>requested</c>.
     /// </summary>
     public const string PlanLimitReached = "PLAN_LIMIT_REACHED";
+    /// <summary>HTTP 409. The target has no usable OAuth sign-in for MCP Canary. Details: <c>auth</c> (sign-in discovery), <c>redirect_uri</c>.</summary>
+    public const string OAuthNotSupported = "OAUTH_NOT_SUPPORTED";
 
     // Target (customer MCP endpoint) failures.
     public const string TargetUnavailable = "TARGET_UNAVAILABLE";
@@ -32,6 +34,8 @@ public static class ErrorCodes
     public const string McpToolNotFound = "MCP_TOOL_NOT_FOUND";
     public const string ToolReturnedError = "TOOL_RETURNED_ERROR";
     public const string SideEffectsNotAllowed = "SIDE_EFFECTS_NOT_ALLOWED";
+    /// <summary>The OAuth token of the target cannot be renewed (revoked or expired). A human must sign in again: <c>canary auth login</c>.</summary>
+    public const string TargetAuthExpired = "TARGET_AUTH_EXPIRED";
     public const string AssertionFailed = "ASSERTION_FAILED";
     public const string AssertionTargetNotJson = "ASSERTION_TARGET_NOT_JSON";
     /// <summary>Evidence of a contract-change incident (<c>alert_on_change</c>). Details: <c>changes</c>.</summary>

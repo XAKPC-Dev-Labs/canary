@@ -105,7 +105,7 @@ public static partial class ArgParsers
         return headers;
     }
 
-    private static string EnvValue(CliHost host, string name, string option) =>
+    public static string EnvValue(CliHost host, string name, string option) =>
         host.Env(name) is { Length: > 0 } value ? value
             : throw CliError.Invalid($"{option}: environment variable '{name}' is not set or empty.", option);
 

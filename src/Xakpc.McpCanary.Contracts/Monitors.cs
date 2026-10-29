@@ -47,6 +47,7 @@ public sealed record DurationAssertion(int LessThanMs);
 /// <param name="Status"><c>active</c> or <c>suspended</c> (<see cref="ResourceStatuses"/>). A suspended monitor is not checked; PUT and test return 402.</param>
 /// <param name="SuspendedReason">Why it is suspended: <see cref="EntitlementReasons"/>. <c>PLAN_LIMIT_REACHED</c> = over the plan's monitor count (the oldest monitors stay active).</param>
 /// <param name="OpenIncidentId">The open incident of this monitor, or null when there is none.</param>
+/// <param name="Auth">OAuth sign-in status of the target (<see cref="TargetAuthStatuses"/>), or null when it has none. See <c>GET /v1/monitors/{id}/auth</c>.</param>
 public sealed record MonitorResponse(
     Guid Id,
     string Name,
@@ -66,7 +67,8 @@ public sealed record MonitorResponse(
     string Status,
     string? SuspendedReason,
     Guid? OpenIncidentId,
-    CheckResult? LastCheck);
+    CheckResult? LastCheck,
+    string? Auth = null);
 
 /// <param name="Created">True when this call created the monitor (HTTP 201).</param>
 /// <param name="Changed">False when the stored state already matched; safe to retry.</param>

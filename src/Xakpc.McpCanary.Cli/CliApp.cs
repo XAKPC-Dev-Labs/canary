@@ -40,7 +40,7 @@ public static class CliApp
         private readonly ApiClient _api = new(host);
 
         public IEnumerable<Command> All() =>
-            [Inspect(), Monitor(), Incident(), Webhook(), Email(), Pricing(), Entitlement(), Billing(), Subscription(), Workspace()];
+            [Inspect(), Monitor(), Auth(), Incident(), Webhook(), Email(), Pricing(), Entitlement(), Billing(), Subscription(), Workspace()];
 
         private Command Inspect()
         {
@@ -165,9 +165,87 @@ public static class CliApp
                     {
                         w.WriteLine($"{(r.Created ? "Created" : r.Changed ? "Updated" : "Unchanged")} monitor '{r.Monitor.Name}'.");
                         Output.CheckLine(w, "First check", r.FirstCheck.Status, r.FirstCheck.DurationMs, r.FirstCheck.Failure);
+                        if (r.FirstCheck.Failure is { Code: ErrorCodes.TargetAuthFailed, Details: { } details }
+                            && details["auth"]?["verdict"]?.ToString() == "healthy" && r.Monitor.Auth is null)
+                            w.WriteLine($"The target asks for an OAuth sign-in. Run: canary auth login {r.Monitor.Name}");
                     });
                     return r.FirstCheck.Status == CheckStatuses.Passed ? ExitCodes.Success : ExitCodes.Warning;
                 });
+        }
+
+        private Command Auth()
+        {
+            var auth = new Command("auth", "OAuth sign-in to a monitor's target, for MCP servers that ask a human to sign in.");
+            var id = IdArgument("Monitor name or id.");
+            var clientId = new Option<string?>("--client-id")
+            {
+                Description = "A pre-registered OAuth app, for servers without self-registration (e.g. GitHub). " +
+                    "Its callback URL must be <api>/oauth/callback, e.g. https://api.mcpcanary.com/oauth/callback.",
+            };
+            var secretEnv = new Option<string?>("--client-secret-env") { Description = "Env var with the client secret of --client-id." };
+            var scope = new Option<string?>("--scope") { Description = "Space-separated scopes. Default: what the target lists." };
+            var noWait = new Option<bool>("--no-wait") { Description = "Print the link and exit. Then check with 'canary auth status'. Implied by --json." };
+            var wait = new Option<string>("--wait") { Description = "How long to wait for the human, e.g. 10m.", DefaultValueFactory = _ => "15m" };
+
+            auth.Subcommands.Add(Cmd("login", "Print a sign-in link for a human, then wait until the sign-in is done. " +
+                "The server stores the token encrypted and renews it.", [id, clientId, secretEnv, scope, noWait, wait], async (p, o, ct) =>
+                {
+                    var request = new AuthLoginRequest(p.GetValue(clientId),
+                        p.GetValue(secretEnv) is { } env ? ArgParsers.EnvValue(host, env, "--client-secret-env") : null, p.GetValue(scope));
+                    var deadline = DateTime.UtcNow.AddSeconds(ArgParsers.Seconds(p.GetValue(wait)!, "--wait"));
+                    var path = $"/v1/monitors/{Escape(p.GetValue(id))}/auth";
+                    var login = await _api.SendAsync(HttpMethod.Post, $"{path}/login", request, ContractsJsonContext.Default.AuthLoginRequest,
+                        ContractsJsonContext.Default.AuthLoginResponse, ct);
+                    o.Result(login.Json, w =>
+                    {
+                        w.WriteLine($"Give this sign-in link to a human (valid until {Output.Time(login.Value.ExpiresAt)}):");
+                        w.WriteLine(login.Value.AuthorizeUrl);
+                    });
+                    if (o.Json || p.GetValue(noWait))
+                        return ExitCodes.Success;
+
+                    o.Note("Waiting for the sign-in...");
+                    TargetAuthResponse status;
+                    do
+                    {
+                        var left = deadline - DateTime.UtcNow;
+                        await Task.Delay(left < LoginPoll ? left > TimeSpan.Zero ? left : TimeSpan.Zero : LoginPoll, ct);
+                        status = (await _api.GetAsync(path, ContractsJsonContext.Default.TargetAuthResponse, ct)).Value;
+                    } while (status.LoginPending && DateTime.UtcNow < deadline);
+
+                    PrintAuth(host.Out, status);
+                    return status.LoginPending ? ExitCodes.Warning
+                        : status is { Status: TargetAuthStatuses.Active, LastError: null } ? ExitCodes.Success
+                        : ExitCodes.TargetUnhealthy;
+                }));
+
+            auth.Subcommands.Add(Cmd("status", "Show the OAuth sign-in of a monitor's target. Tokens are never shown.", [id], async (p, o, ct) =>
+            {
+                var result = await _api.GetAsync($"/v1/monitors/{Escape(p.GetValue(id))}/auth", ContractsJsonContext.Default.TargetAuthResponse, ct);
+                o.Result(result.Json, w => PrintAuth(w, result.Value));
+                return result.Value.Status == TargetAuthStatuses.Expired ? ExitCodes.TargetUnhealthy : ExitCodes.Success;
+            }));
+
+            auth.Subcommands.Add(Cmd("logout", "Forget the OAuth sign-in. Checks then run without it.", [id], async (p, o, ct) =>
+                await DeleteAsync($"/v1/monitors/{Escape(p.GetValue(id))}/auth", $"Removed the OAuth sign-in of '{p.GetValue(id)}'.", o, ct)));
+            return auth;
+        }
+
+        private static readonly TimeSpan LoginPoll = TimeSpan.FromSeconds(3);
+
+        private static void PrintAuth(TextWriter w, TargetAuthResponse a)
+        {
+            w.WriteLine($"OAuth {a.Status}{(a.LoginPending ? " (sign-in link not used yet)" : "")}");
+            w.WriteLine($"  issuer:    {a.Issuer}");
+            w.WriteLine($"  client:    {a.ClientId} ({a.Registration})");
+            if (a.Scope is { } scope)
+                w.WriteLine($"  scope:     {scope}");
+            if (a.AuthorizedAt is { } at)
+                w.WriteLine($"  signed in: {Output.Time(at)}");
+            w.WriteLine($"  token:     {(a.AccessTokenExpiresAt is { } exp ? $"expires {Output.Time(exp)}" : "no expiry")}, " +
+                $"{(a.Refreshable ? "renewed by the server" : "not renewable")}");
+            if (a.LastError is { } error)
+                w.WriteLine($"  error:     {error}");
         }
 
         /// <summary><c>monitor set --dry-run</c>: never creates a workspace or saves a token; sends the token only when there is one.</summary>
@@ -541,6 +619,8 @@ public static class CliApp
             if (m.Headers.Count > 0)
                 w.WriteLine($"  headers:   {string.Join(", ", m.Headers)} (values hidden)");
             w.WriteLine($"  last:      {Output.Check(m.LastCheck)}  next {Output.Time(m.NextRunAt)}");
+            if (m.Auth is { } auth)
+                w.WriteLine($"  oauth:     {auth} (canary auth status {m.Name})");
             if (m.OpenIncidentId is { } incident)
                 w.WriteLine($"  incident:  {incident} (open)");
         }
