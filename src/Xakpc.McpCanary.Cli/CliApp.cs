@@ -60,6 +60,8 @@ public static class CliApp
                             w.WriteLine($"Server: {server.Name} {server.Version} ({r.Transport}, protocol {r.Protocol})");
                         Output.Table(w, ["TOOL", "SIDE EFFECTS", "DESCRIPTION"],
                             r.Tools.Select(t => new[] { t.Name, t.SideEffects, FirstLine(t.Description) }));
+                        if (r.AgentReadiness is { } report)
+                            PrintReadiness(w, report);
                     });
                     return ExitCodes.FromCheck(r.Status, r.Failure);
                 });
@@ -232,6 +234,28 @@ public static class CliApp
         }
 
         private static readonly TimeSpan LoginPoll = TimeSpan.FromSeconds(3);
+
+        /// <summary>The agent-readiness report: server findings first, then one block per tool. --json has every field.</summary>
+        private static void PrintReadiness(TextWriter w, AgentReadinessReport report)
+        {
+            w.WriteLine();
+            var grade = report.Grade is { } g ? $"{g} ({report.Score}/100)" : "not graded (no tool list)";
+            w.WriteLine($"Agent readiness: {grade}, {report.Errors} errors, {report.Warnings} warnings, {report.Infos} notes");
+            foreach (var group in report.Findings.GroupBy(f => f.Tool))
+            {
+                w.WriteLine();
+                w.WriteLine(group.Key is { } tool ? $"Tool {tool}" : "Server");
+                foreach (var f in group)
+                {
+                    w.WriteLine($"  [{f.Severity}] {f.Message}");
+                    foreach (var item in f.Items ?? [])
+                        w.WriteLine($"      - {item}");
+                    w.WriteLine($"      fix: {f.Fix}");
+                    if (f.Example is { } example)
+                        w.WriteLine($"      e.g. {example}");
+                }
+            }
+        }
 
         private static void PrintAuth(TextWriter w, TargetAuthResponse a)
         {
